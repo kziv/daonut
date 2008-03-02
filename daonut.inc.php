@@ -5,8 +5,9 @@
 class DAOFactory {
 
     const DIR_CONNECTORS = '/connectors/';
-    
     protected static $connectors = array();
+    
+    public static $test_factory;  // This is a unit-testing hook. Do NOT use it for anything else    
         
     /**
      * Creates a connector object
@@ -29,23 +30,44 @@ class DAOFactory {
         }
         
         // Parse the connection string into its constituent parts
-        $connection_array = parse_url($connection_string);
+        //$connection_array = parse_url($connection_string);
         //print_r($connection_array);
 
-        // Load the appropriate scheme class
-        if (empty($connection_array['scheme'])) {
+        // Create a new connector
+        $scheme = parse_url($connection_string, PHP_URL_SCHEME);
+        if (empty($scheme)) {
             return FALSE;
         }
-        $class_name = 'DAO_' . $connection_array['scheme'];
+        $connector = self::getConnector($connection_string);
+        if (!$connector) {
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    public static function getConnector($connection_string) {
+
+        if (empty($connection_string)) {
+            return FALSE;
+        }
+        
+        // Unit testing static method
+        if (self::$test_factory && method_exists(self::$test_factory, 'getConnector')) {
+            $f = self::$test_factory;
+            return $f->getConnector($connection_string);
+        }
+        
+        $scheme = parse_url($connection_string, PHP_URL_SCHEME);
+        $class_name = 'Connector_' . $scheme;
         if (!class_exists($class_name)) {
-            $connector_path = dirname(__FILE__) . self::DIR_CONNECTORS . $connection_array['scheme'] . '.connector.php';
+            $connector_path = dirname(__FILE__) . self::DIR_CONNECTORS . $scheme . '.connector.php';
             @include $connector_path;
             if (!class_exists($class_name)) {
-                error_log("Connector for '" . $connection_array['scheme'] . "' not found in '$connector_path'");
+                error_log("Connector '" . $class_name . "' not found in '$connector_path'");
                 return FALSE;
             }
         }
-        
-        return TRUE;
+        return new $class_name($connection_string);
     }
+    
 }
