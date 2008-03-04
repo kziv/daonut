@@ -5,7 +5,9 @@
 class DAOFactory {
 
     const DIR_CONNECTORS = '/connectors/';
+    const DIR_RESOURCES  = '/resources/';
     protected static $connectors = array();
+    protected static $resources = array();
     
     public static $test_factory;  // This is a unit-testing hook. Do NOT use it for anything else    
         
@@ -28,20 +30,20 @@ class DAOFactory {
         if (isset(self::$connectors[$connection_string])) {
             return TRUE;
         }
-        
-        // Parse the connection string into its constituent parts
-        //$connection_array = parse_url($connection_string);
-        //print_r($connection_array);
 
-        // Create a new connector
+        // Create and store a new connector
         $scheme = parse_url($connection_string, PHP_URL_SCHEME);
         if (empty($scheme)) {
             return FALSE;
         }
-        $connector = self::getConnector($connection_string);
+
+        // Unit testing static method
+        $connector = self::getConnector($connection_string);        
         if (!$connector) {
             return FALSE;
         }
+        self::$connectors[$connection_string] = $connector;
+        
         return TRUE;
     }
 
@@ -69,5 +71,50 @@ class DAOFactory {
         }
         return new $class_name($connection_string);
     }
-    
+
+    /**
+     * Creates a connection to a data resource
+     * @param {str} daonut resource string in format DB.Table
+     * @param {str} Query type (default: 'select')
+     **/
+    public static function create($resource, $type = 'select') {
+        
+        $resource = trim($resource);
+        if (empty($resource)) {
+            error_log("No table resource defined.");
+            return FALSE;
+        }
+
+        // Make sure query is of valid type
+        $allowed_query_types = array('select', 'update', 'insert', 'delete','info');
+        $type = strtolower($type);
+        if (!in_array($type, $allowed_query_types)) {
+            error_log("Invalid query type '" . $type . "' for resource '" . $resource . "'");
+            return FALSE;
+        }
+
+        $resource = strtolower($resource);
+        // If a data resource file exists, load its info
+        $class_name = 'DAO_' . str_replace('.', '_', $resource); 
+        if (!class_exists($class_name)) {
+            @include dirname(__FILE__) . self::DIR_RESOURCES . str_replace('.', DIRECTORY_SEPARATOR, $resource) . '.dao.php';
+        }
+        if (class_exists($class_name)) {
+            $dao = new $class_name();
+            if (! $dao instanceof DynamicDao) {
+                error_log("Resource '" . $resource . "' is not a valid DynamicDao");
+                return FALSE;
+            }
+        }
+        else {
+            $dao = new DynamicDao();
+        }
+
+        // Create a new connection if one doesn't exist
+
+    }
+}
+
+class DynamicDao {
+
 }

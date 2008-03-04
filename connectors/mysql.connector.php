@@ -23,6 +23,5 @@ class Connector_MySQL implements Connector {
         }
         return TRUE;
     }
-    
 
 }
