@@ -111,8 +111,20 @@ class DAOFactory {
         }
 
         // Create a new connection if one doesn't exist
-
+        
     }
+
+    /**
+     * Gets the DSN information for an alias
+     * Loads the DSN mapping information and returns the connection string for the given
+     * DSN alias.
+     * @param  {str} DSN Alias (e.g. 'foo')
+     * @return {str} Connection string in parse_url format
+     **/
+    public static function getDSN($alias) {
+        
+    }
+    
 }
 
 class DynamicDao {

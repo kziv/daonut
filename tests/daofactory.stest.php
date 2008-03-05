@@ -157,6 +157,24 @@ class DAOFactory_connect_goodConnector_Test extends Snap_UnitTestCase {
 }
 
 /**
+ * DaoFactory::getDSN()
+ **/
+class DaoFactory_getDSN_Test extends Snap_UnitTestCase {
+
+    protected $dsn_map = array('foo' => 'mysql://user:pass@localhost:3306/test_db');
+                               
+    public function setUp() {}
+
+    public function tearDown() {}
+
+    // Success case
+    public function testFoundAliasReturnsDSN() {
+        //var_dump($this->dsn_map['foo']);
+        return $this->assertIdentical($this->dsn_map['foo'], DaoFactory::getDSN('foo'));
+    }
+}
+
+/**
  * DaoFactory::create
  **/
 class DAOFactory_create_Test extends Snap_UnitTestCase {
