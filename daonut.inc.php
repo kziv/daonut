@@ -10,7 +10,8 @@ class DAOFactory {
     protected static $connectors = array();
     protected static $resources = array();
     
-    public static $dsn = array(); // DSN -> connector mappings
+    public static $dsn2connector = array(); // DSN -> connector mappings
+    public static $db2dsn        = array(); // database -> DSN mappings
     
     public static $test_factory;  // This is a unit-testing hook. Do NOT use it for anything else    
         
@@ -102,19 +103,27 @@ class DAOFactory {
         if (!class_exists($class_name)) {
             @include dirname(__FILE__) . self::DIR_RESOURCES . str_replace('.', DIRECTORY_SEPARATOR, $resource) . '.dao.php';
         }
+        // If the correct DAO exists in a file, use it
         if (class_exists($class_name)) {
             $dao = new $class_name();
             if (!$dao instanceof DynamicDao) {
                 error_log("Resource '" . $resource . "' is not a valid DynamicDao");
                 return FALSE;
             }
+            
         }
-        else {
+        else {  // No resource file found for this resource string
+
+            /*
+            // Create a generic resource based on the resource string
             $dao = new DynamicDao();
+            list($dao->db, $dao->table) = explode('.', $resource);
+            */
         }
 
         // Create a new connection if one doesn't exist
-	
+
+        return $dao;
     }
 
     /**
@@ -127,14 +136,36 @@ class DAOFactory {
     public static function getConnectionString($alias, $file = 'dsn2connector.inc.php') {
         if (empty(self::$dsn)) {
             @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
-            if (!isset($dsn2connector)) {
+            if (!isset($map)) {
                 return FALSE;
             }
-            self::$dsn = $dsn2connector;
+            self::$dsn2connector = $map;
+            unset($map);
         }
-        if (!isset(self::$dsn[$alias])) {
-            return FALSE;
+        return isset(self::$dsn2connector[$alias])
+            ? self::$dsn2connector[$alias]
+            : FALSE;
+
+    }
+
+    /**
+     * Gets the DSN alias for a database
+     * Loads the database mapping information and returns the DSN alias
+     * for the given database.
+     **/
+    public static function getDSN($alias, $file = 'db2dsn.inc.php') {
+        if (empty(self::$db2dsn)) {
+            @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
+            if (!isset($map)) {
+                return FALSE;
+            }
+            self::$db2dsn = $map;
+            unset($map);
         }
+        
+        return isset(self::$db2dsn[$alias])
+            ? self::$db2dsn[$alias]
+            : FALSE;
     }
     
 }
@@ -144,18 +175,5 @@ class DynamicDao {
     protected $db;
     protected $table;
     protected $fields = array();
-    
-    // DB -> DSN maps
-    protected $dsn = array();
-    
-    public function getDSN() {
-        if (empty($this->db)) {
-            return;
-        }
-        
-        return isset($this->dsn[$this->db])
-            ? $this->dsn[$this->db]
-            : NULL;
-    }
 
 }

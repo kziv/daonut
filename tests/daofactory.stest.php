@@ -160,23 +160,58 @@ class DAOFactory_connect_goodConnector_Test extends Snap_UnitTestCase {
  * DaoFactory::getConnectionString
  **/
 class DaoFactory_getConnectionString_Test extends Snap_UnitTestCase {
-    
-    public function setUp() {}
-    
-    public function tearDown() {}
 
-    public function testNoConnectionStringFoundReturnsFalse() {
-        return $this->assertFalse(DaoFactory::getConnectionString('no_matching_dsn'));
+    protected $test_map_file;
+    protected $map;
+    
+    public function setUp() {
+        $this->test_map_file = basename(realpath('.')) . DIRECTORY_SEPARATOR . 'test_dsn2connector.inc.php';
+        @include dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . $this->test_map_file;
+        $this->map = $map;
+    }
+    
+    public function tearDown() {
+        unset($this->test_map_file, $map);
     }
 
+    public function testNoConnectionStringFoundReturnsFalse() {
+        return $this->assertFalse(DaoFactory::getConnectionString('no_matching_dsn', $this->test_map_file));
+    }
     
     // Success case
     public function testFoundAliasReturnsConnectionString() {
-        $this->notImplemented();
-        //var_dump($this->dsn_map['foo']);
-        return $this->assertIdentical($this->dsn_map['foo'], DaoFactory::getConnectionString('foo'));
+        return $this->assertIdentical($this->map['test_mysql'], DaoFactory::getConnectionString('test_mysql', $this->test_map_file));
     }
 
+}
+
+
+/**
+ * DaoFactory::getDSN
+ **/
+class DaoFactory_getDSN_Test extends Snap_UnitTestCase {
+
+    protected $test_map_file;
+
+    public function setUp() {
+        $this->test_map_file = basename(realpath('.')) . DIRECTORY_SEPARATOR . 'test_db2dsn.inc.php';
+        @include dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . $this->test_map_file;
+        $this->map = $map;
+    }
+    
+    public function tearDown() {
+        unset($this->test_map_file, $map);
+    }
+
+    public function testNoConnectionStringFoundReturnsFalse() {
+        return $this->assertFalse(DaoFactory::getDSN('no_matching_database', $this->test_map_file));
+    }
+
+    // Success case
+    public function testFoundAliasReturnsConnectionString() {
+        return $this->assertIdentical($this->map['test_db'], DaoFactory::getConnectionString('test_db', $this->test_map_file));
+    }
+    
 }
 
 /**
@@ -195,10 +230,21 @@ class DAOFactory_create_Test extends Snap_UnitTestCase {
     public function testInvalidTypeReturnsFalse() {
         return $this->assertFalse(DaoFactory::create('Foo.Bar', 'baz'));
     }
+
+}
+
+class DaoFactory_create_generic_Test extends Snap_UnitTestCase {
+
+    protected $dao;
     
-    public function testResourceClassIsNotDynamicDaoReturnsFalse() {
-        $this->willError();
-        return $this->assertFalse(DaoFactory::create('Test.Invalid'));
+    public function setUp() {
+        $this->dao = DaoFactory::create('TestDB.TestTable');
     }
+
+    public function tearDown() {}
     
+    public function testNoResourceFileCreatesGenericDynamicDao() {
+        return $this->assertIdentical();
+    }
+
 }
