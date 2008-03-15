@@ -6,8 +6,11 @@ class DAOFactory {
 
     const DIR_CONNECTORS = '/connectors/';
     const DIR_RESOURCES  = '/resources/';
+
     protected static $connectors = array();
     protected static $resources = array();
+    
+    public static $dsn = array(); // DSN -> connector mappings
     
     public static $test_factory;  // This is a unit-testing hook. Do NOT use it for anything else    
         
@@ -101,7 +104,7 @@ class DAOFactory {
         }
         if (class_exists($class_name)) {
             $dao = new $class_name();
-            if (! $dao instanceof DynamicDao) {
+            if (!$dao instanceof DynamicDao) {
                 error_log("Resource '" . $resource . "' is not a valid DynamicDao");
                 return FALSE;
             }
@@ -111,22 +114,48 @@ class DAOFactory {
         }
 
         // Create a new connection if one doesn't exist
-        
+	
     }
 
     /**
-     * Gets the DSN information for an alias
+     * Gets the connection string for a DSN alias
      * Loads the DSN mapping information and returns the connection string for the given
      * DSN alias.
      * @param  {str} DSN Alias (e.g. 'foo')
      * @return {str} Connection string in parse_url format
      **/
-    public static function getDSN($alias) {
-        
+    public static function getConnectionString($alias, $file = 'dsn2connector.inc.php') {
+        if (empty(self::$dsn)) {
+            @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
+            if (!isset($dsn2connector)) {
+                return FALSE;
+            }
+            self::$dsn = $dsn2connector;
+        }
+        if (!isset(self::$dsn[$alias])) {
+            return FALSE;
+        }
     }
     
 }
 
 class DynamicDao {
+
+    protected $db;
+    protected $table;
+    protected $fields = array();
+    
+    // DB -> DSN maps
+    protected $dsn = array();
+    
+    public function getDSN() {
+        if (empty($this->db)) {
+            return;
+        }
+        
+        return isset($this->dsn[$this->db])
+            ? $this->dsn[$this->db]
+            : NULL;
+    }
 
 }
