@@ -120,7 +120,7 @@ class DAOFactory_connect_badConnector_Test extends Snap_UnitTestCase {
     }
     
     public function testNoConnectorCreatedReturnsFalse() {
-        $this->notImplemented();
+        $this->notImplemented();        
         return $this->assertFalse(DaoFactory::connect($this->connector));
     }
     
@@ -128,7 +128,7 @@ class DAOFactory_connect_badConnector_Test extends Snap_UnitTestCase {
 }
 
 /**
- * DAOFactory::connect() - connector class created
+ * DAOFactory::connect - connector class created
  **/
 class DAOFactory_connect_goodConnector_Test extends Snap_UnitTestCase {
 
@@ -219,9 +219,16 @@ class DaoFactory_getDSN_Test extends Snap_UnitTestCase {
  **/
 class DAOFactory_create_Test extends Snap_UnitTestCase {
 
-    public function setUp() {}
+    public function setUp() {
+        $this->mock_method = $this->mock('DaoFactory')
+            ->setReturnValue('connect', TRUE)
+            ->construct();
+        DaoFactory::$test_factory = $this->mock_method;
+    }
 
-    public function tearDown() {}
+    public function tearDown() {
+        DaoFactory::$test_factory = NULL;
+    }
 
     public function testNoParamsReturnsFalse() {
         return $this->assertFalse(DaoFactory::create('  '));
@@ -231,20 +238,45 @@ class DAOFactory_create_Test extends Snap_UnitTestCase {
         return $this->assertFalse(DaoFactory::create('Foo.Bar', 'baz'));
     }
 
+    public function testNoResourceFileUsesResourceStringDB() {
+        $this->notImplemented();        
+        $this->willError();
+        $dao = DaoFactory::create('TestDB.TestTable');
+        return $this->assertIdentical('testdb', $dao->db);
+    }
+
+    public function testNoResourceFileUsesResourceStringTable() {
+        $this->notImplemented();        
+        $this->willError();
+        $dao = DaoFactory::create('TestDB.TestTable');        
+        return $this->assertIdentical('testtable', $dao->table);
+    }
+
 }
 
-class DaoFactory_create_generic_Test extends Snap_UnitTestCase {
+/**
+ * DaoFactory::create - test connector logic
+ **/
+class DaoFactory_create_connector_Test extends Snap_UnitTestCase {
 
-    protected $dao;
+    protected $test_map_file;
     
     public function setUp() {
-        $this->dao = DaoFactory::create('TestDB.TestTable');
+        $this->test_map_file = basename(realpath('.')) . DIRECTORY_SEPARATOR . 'test_db2dsn.inc.php';
+        @include dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . $this->test_map_file;
+        $this->mock_method = $this->mock('DaoFactory')
+            ->setReturnValue('connect', FALSE)
+            ->construct();
+        DaoFactory::$test_factory = $this->mock_method;
     }
 
-    public function tearDown() {}
-    
-    public function testNoResourceFileCreatesGenericDynamicDao() {
-        return $this->assertIdentical();
+    public function tearDown() {
+        DaoFactory::$test_factory = NULL;
+        unset($this->test_map_file);
     }
 
+    public function testNoConnectorCreatedReturnsFalse() {
+        return $this->assertFalse(DaoFactory::create('testdb.testtable', $this->test_map_file));
+    }
+        
 }

@@ -3,7 +3,7 @@ include_once 'connector.interface.php';
 
 /**
  * MySQL connector class
- * For method descriptions, see interface DAO in daonut.php
+ * For method descriptions, see interface Connector in connector.interface.php
  **/
 class Connector_MySQL implements Connector {
 
@@ -24,4 +24,24 @@ class Connector_MySQL implements Connector {
         return TRUE;
     }
 
+    public function disconnect() {
+        return mysql_close($this->db_link);
+    }
+    
+    public function useDB($db) {
+        return mysql_select_db($db, $this->db_link);        
+    }
+
+    /* =================================
+       QUERY BUILDING METHODS
+       ================================= */
+
+    public function query($sql) {
+        return mysql_query($sql, $this->db_link);
+    }
+
+    public function escape($string) {
+        return mysql_real_escape_string($string);
+    }
+    
 }

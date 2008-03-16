@@ -3,8 +3,8 @@ include_once dirname(dirname(__FILE__)) . '/daonut.inc.php';
 
 class DAO_Test extends DynamicDao {
   
-  protected $db = 'foo';
-  protected $table = 'bar';
+  public $db = 'foo';
+  public $table = 'bar';
 
 }
 

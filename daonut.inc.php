@@ -25,6 +25,12 @@ class DAOFactory {
      **/
     public static function connect($connection_string) {
 
+        // Unit testing static method
+        if (self::$test_factory && method_exists(self::$test_factory, __METHOD__)) {
+            $f = self::$test_factory;
+            return $f->__METHOD__($connection_string);
+        }
+
         $connection_string = trim($connection_string);
         if (empty($connection_string)) {
             return FALSE;
@@ -114,15 +120,18 @@ class DAOFactory {
         }
         else {  // No resource file found for this resource string
 
-            /*
             // Create a generic resource based on the resource string
             $dao = new DynamicDao();
             list($dao->db, $dao->table) = explode('.', $resource);
-            */
         }
-
+        
         // Create a new connection if one doesn't exist
-
+        $connection_string = self::getConnectionString(self::getDSN($dao->db));
+        if (!self::connect($connection_string)) {
+            return FALSE;
+        }
+        self::$connectors[$connection_string]->usedb($dao->db);
+            
         return $dao;
     }
 
@@ -134,6 +143,13 @@ class DAOFactory {
      * @return {str} Connection string in parse_url format
      **/
     public static function getConnectionString($alias, $file = 'dsn2connector.inc.php') {
+
+        // Unit testing static method
+        if (self::$test_factory && method_exists(self::$test_factory, __METHOD__)) {
+            $f = self::$test_factory;
+            return $f->__METHOD__($alias, $file);
+        }
+        
         if (empty(self::$dsn)) {
             @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
             if (!isset($map)) {
@@ -172,8 +188,8 @@ class DAOFactory {
 
 class DynamicDao {
 
-    protected $db;
-    protected $table;
-    protected $fields = array();
-
+    public $db;
+    public $table;
+    public $fields = array();
+    
 }
