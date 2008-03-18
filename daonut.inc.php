@@ -127,6 +127,10 @@ class DAOFactory {
         
         // Create a new connection if one doesn't exist
         $connection_string = self::getConnectionString(self::getDSN($dao->db));
+        if (empty($connection_string)) {
+            error_log("No connection string found for resource '" . $resource . "'");
+            return FALSE;
+        }
         if (!self::connect($connection_string)) {
             return FALSE;
         }
