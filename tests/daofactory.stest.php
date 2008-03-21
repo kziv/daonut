@@ -76,9 +76,9 @@ class DAOFactory_getConnector_Test extends Snap_UnitTestCase {
 class DAOFactory_connect_Test extends Snap_UnitTestCase {
 
     // Test data for connectors
-    protected $connectors = array('db'   => 'mysql://user:pass@localhost:3306/test_db',
+    protected $connectors = array('db'   => 'mysql://user:pass@localhost:3306',
                                   'http' => 'http://news.google.com/nwshp?hl=en&tab=wn&output=rss',
-                                  'bad'  => 'noconnector://user:pass@localhost:3306/test_db',
+                                  'bad'  => 'noconnector://user:pass@localhost:3306',
                                   );
 
 
@@ -88,6 +88,7 @@ class DAOFactory_connect_Test extends Snap_UnitTestCase {
 
     // Success case
     public function testConnectReturnsTrue() {
+        $this->notImplemented();
         return $this->assertTrue(DaoFactory::connect($this->connectors['db']));
     }
 
@@ -101,7 +102,6 @@ class DAOFactory_connect_Test extends Snap_UnitTestCase {
 /**
  * DAOFactory::connect() - connector class usage
  **/
-
 class DAOFactory_connect_badConnector_Test extends Snap_UnitTestCase {
 
     protected $connector = 'mysql://user:pass@localhost:3306/test_db';
@@ -118,12 +118,11 @@ class DAOFactory_connect_badConnector_Test extends Snap_UnitTestCase {
         DaoFactory::$test_factory = NULL;
         unset($connector);
     }
-    
+
     public function testNoConnectorCreatedReturnsFalse() {
-        $this->notImplemented();        
+        $this->notImplemented();
         return $this->assertFalse(DaoFactory::connect($this->connector));
     }
-    
     
 }
 

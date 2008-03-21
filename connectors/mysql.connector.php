@@ -7,21 +7,31 @@ include_once 'connector.interface.php';
  **/
 class Connector_MySQL implements Connector {
 
-    protected $error;
     protected $db_link;
+    protected $rs;
+    protected $error;
+    protected $sql;
     
     public function connect($params) {
 
+        if (empty($params)) {
+            return FALSE;
+        }
         $params = parse_url($params);
-        
-        $this->db_link = mysql_connect($params['host'], $params['user'], $params['pass']);
+        if (!isset($params['user'])) {
+            $params['user'] = NULL;
+        }
+        if (!isset($params['pass'])) {
+            $params['pass'] = NULL;
+        }
+
+        $this->db_link = @mysql_connect($params['host'], $params['user'], $params['pass']);
         if (!$this->db_link) {
             $this->error = array('errno'   => mysql_errno(),
                                  'message' => mysql_error(),
                                  );
-            return FALSE;
         }
-        return TRUE;
+        return (bool) $this->db_link;
     }
 
     public function disconnect() {
@@ -32,16 +42,55 @@ class Connector_MySQL implements Connector {
         return mysql_select_db($db, $this->db_link);        
     }
 
+    public function getError() {
+        return $this->error;
+    }
+    
     /* =================================
        QUERY BUILDING METHODS
        ================================= */
-
+    
     public function query($sql) {
-        return mysql_query($sql, $this->db_link);
+        $this->rs = mysql_query($sql, $this->db_link);
+        return (bool) $this->rs;        
     }
 
     public function escape($string) {
         return mysql_real_escape_string($string);
     }
+
+    /* =================================
+       RESULT SET METHODS
+       ================================= */
+
+    public function affectedrows() {
+        return (strpos($this->sql, 'SELECT') === 0)
+            ? mysql_num_rows($this->rs)
+            : mysql_affected_rows($this->db_link);
+    }
+
+    public function fetchrowset($type = RS_HASH) {
+        $rows = array();
+        while ($row = $this->fetchrow($type)) {
+            $rows[] = $row;
+        }
+        return count($rows)
+            ? $rows
+            : FALSE;
+    }
+
+    public function fetchrow($type = RS_HASH) {
+        return is_resource($this->rs)
+            ? mysql_fetch_array($this->rs, $this->rsdatatype($type))
+            : FALSE;
+    }
+
+    /**
+     * @todo Implement this
+     **/
+    public function fetchfield($field) {
+        return FALSE;
+    }
+    
     
 }

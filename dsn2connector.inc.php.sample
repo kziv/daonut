@@ -3,8 +3,8 @@
  * dsn2connector
  * Maps DSN names to connector strings
  **/
-$dsn2connector =
+$map = 
 array(
-      'library' => 'mysql://localhost',
       'flickr'  => 'http://flickr.com',
+      'localhost'    => 'mysql://root:root@localhost',
       );

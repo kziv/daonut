@@ -48,12 +48,16 @@ class DAOFactory {
         }
 
         // Unit testing static method
-        $connector = self::getConnector($connection_string);        
+        $connector = self::getConnector($connection_string);
         if (!$connector) {
             return FALSE;
         }
+        if (!$connector->connect($connection_string)) {
+            $error = $connector->getError();
+            error_log("Can't connect: " . $error['message']);
+            return FALSE;
+        }
         self::$connectors[$connection_string] = $connector;
-        
         return TRUE;
     }
 
@@ -79,7 +83,7 @@ class DAOFactory {
                 return FALSE;
             }
         }
-        return new $class_name($connection_string);
+        return new $class_name();
     }
 
     /**
@@ -134,8 +138,9 @@ class DAOFactory {
         if (!self::connect($connection_string)) {
             return FALSE;
         }
-        self::$connectors[$connection_string]->usedb($dao->db);
-            
+        $dao->setConnector(self::$connectors[$connection_string]);
+        $dao->connector->usedb($dao->db);
+
         return $dao;
     }
 
@@ -195,5 +200,43 @@ class DynamicDao {
     public $db;
     public $table;
     public $fields = array();
+
+    public $connector;
+    protected $sql;
+    
+    public function setConnector(Connector $connector) {
+        if (! $connector instanceof Connector) {
+            return FALSE;
+        }
+        $this->connector = $connector;
+    }
+
+    public function query($sql) {
+        if (!$this->connector || empty($sql)) {
+            return FALSE;
+        }
+        $this->sql = $sql;
+    }
+
+    public function execute() {
+        return $this->connector->query($this->sql);
+    }
+
+    /**
+     * Magic field doohickey
+     * @param {str} Name of method
+     **/
+    public function __call($m, $a) {
+        
+        if (method_exists($this->connector, $m)) {
+            call_user_func_array(array($this->connector, $m), $a);
+        }
+        else {
+            throw new DynamicDaoException("Method '$m' does not exist.");
+        }
+
+    }
     
 }
+
+class DynamicDaoException extends Exception {}

@@ -1,0 +1,9 @@
+<?php
+/**
+ * db2dsn
+ * Maps databases to DSN aliases
+ **/
+$map =
+array(
+      'database_name' => 'pretty_dsn_alias',
+      );

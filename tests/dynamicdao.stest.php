@@ -8,7 +8,6 @@ class DAO_Test extends DynamicDao {
 
 }
 
-
 /**  ======================================== 
  * TESTS
  ======================================== **/
@@ -29,4 +28,36 @@ class DynamicDao_Test extends Snap_UnitTestCase {
     public function testTestClassIsADynamicDao() {
         return $this->assertIsA(new DAO_Test, 'DynamicDao');
     }
+}
+
+class DynamicDao_setConnector_Test extends Snap_UnitTestCase {
+
+    public function setUp() {
+        $this->dao = new DAO_Test();
+    }
+
+    public function tearDown() {}
+
+    public function testParamIsNotInstanceOfConnectorReturnsFalse() {
+        $this->willError();
+        return $this->assertFalse($this->dao->setConnector());
+    }
+}
+
+class DynamicDao_query_Test extends Snap_UnitTestCase {
+
+    public function setUp() {
+        $this->dao = new DAO_Test();
+    }
+
+    public function tearDown() {}
+
+    public function testNoConnectorSetReturnsFalse() {
+        return $this->assertFalse($this->dao->query('SELECT * FROM bar'));
+    }
+    
+    public function testNoParamReturnsFalse() {
+        $this->notImplemented();
+    }
+    
 }
