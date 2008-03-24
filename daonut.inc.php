@@ -139,7 +139,10 @@ class DAOFactory {
             return FALSE;
         }
         $dao->setConnector(self::$connectors[$connection_string]);
-        $dao->connector->usedb($dao->db);
+        if (!$dao->connector->usedb($dao->db)) {
+            error_log("Could not connect to DB '" . $dao->db . "'");
+            return FALSE;
+        }
 
         return $dao;
     }
@@ -205,20 +208,24 @@ class DynamicDao {
     protected $sql;
     
     public function setConnector(Connector $connector) {
-        if (! $connector instanceof Connector) {
+        if (!$connector instanceof Connector) {
             return FALSE;
         }
         $this->connector = $connector;
     }
 
     public function query($sql) {
-        if (!$this->connector || empty($sql)) {
+        if (empty($sql)) {
             return FALSE;
         }
         $this->sql = $sql;
+        return TRUE;
     }
 
     public function execute() {
+        if (empty($this->connector)) {
+            return FALSE;
+        }
         return $this->connector->query($this->sql);
     }
 
@@ -229,7 +236,7 @@ class DynamicDao {
     public function __call($m, $a) {
         
         if (method_exists($this->connector, $m)) {
-            call_user_func_array(array($this->connector, $m), $a);
+            return call_user_func_array(array($this->connector, $m), $a);
         }
         else {
             throw new DynamicDaoException("Method '$m' does not exist.");

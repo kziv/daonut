@@ -3,6 +3,10 @@
  * Connectors interface
  * All connectors must implement the methods below
  **/
+define('RS_HASH', 0);
+define('RS_NUM', 1);
+define('RS_BOTH', 2);
+
 interface Connector {
     
     /**
@@ -88,5 +92,5 @@ interface Connector {
      * @return {array}
      **/
     public function fetchfield($field);
-    
+
 }
