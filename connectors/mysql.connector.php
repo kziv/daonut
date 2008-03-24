@@ -88,7 +88,8 @@ class Connector_MySQL implements Connector {
      * @todo Implement this
      **/
     public function fetchfield($field) {
-        return FALSE;
+        $row = $this->fetchrow(RS_HASH);
+        return isset($row[$field]) ? $row[$field] : FALSE;
     }
 
     /**
