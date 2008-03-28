@@ -61,3 +61,11 @@ class DynamicDao_query_Test extends Snap_UnitTestCase {
     }
     
 }
+
+class DynamicDao_execute_Test extends Snap_UnitTestCase {
+
+    public function setUp() {}
+
+    public function tearDown() {}
+
+}

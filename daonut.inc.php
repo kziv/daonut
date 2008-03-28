@@ -205,8 +205,19 @@ class DynamicDao {
     public $fields = array();
 
     public $connector;
+    protected $querybuilder;
+    
     protected $sql;
     
+    public function __construct() {
+        if (class_exists('QueryBuilder')) {
+            $this->querybuilder = new QueryBuilder();
+        }
+    }
+    
+    /**
+     * Stores a database connector
+     **/
     public function setConnector(Connector $connector) {
         if (!$connector instanceof Connector) {
             return FALSE;
@@ -214,6 +225,11 @@ class DynamicDao {
         $this->connector = $connector;
     }
 
+    /**
+     * Stores a SQL query string for execution
+     * @param {str} query string
+     * @return {bool} String passes basic validation or not
+     **/
     public function query($sql) {
         if (empty($sql)) {
             return FALSE;
@@ -222,7 +238,11 @@ class DynamicDao {
         return TRUE;
     }
 
-    public function execute() {
+    /**
+     * Executes a query
+     * @param {bool} 
+     **/
+    public function execute($pre_validate = TRUE) {
         if (empty($this->connector)) {
             return FALSE;
         }
@@ -234,9 +254,12 @@ class DynamicDao {
      * @param {str} Name of method
      **/
     public function __call($m, $a) {
-        
+
         if (method_exists($this->connector, $m)) {
             return call_user_func_array(array($this->connector, $m), $a);
+        }
+        elseif ($this->querybuilder && method_exists($this->querybuilder, $m)) {
+            return call_user_func_array(array($this->querybuilder, $m), $a);
         }
         else {
             throw new DynamicDaoException("Method '$m' does not exist.");
