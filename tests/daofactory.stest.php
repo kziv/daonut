@@ -164,8 +164,8 @@ class DaoFactory_getConnectionString_Test extends Snap_UnitTestCase {
     protected $map;
     
     public function setUp() {
-        $this->test_map_file = basename(realpath('.')) . DIRECTORY_SEPARATOR . 'test_dsn2connector.inc.php';
-        @include dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . $this->test_map_file;
+        $this->test_map_file = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'test_dsn2connector.inc.php';
+        @include $this->test_map_file;
         $this->map = $map;
     }
     
@@ -176,7 +176,7 @@ class DaoFactory_getConnectionString_Test extends Snap_UnitTestCase {
     public function testNoConnectionStringFoundReturnsFalse() {
         return $this->assertFalse(DaoFactory::getConnectionString('no_matching_dsn', $this->test_map_file));
     }
-    
+
     // Success case
     public function testFoundAliasReturnsConnectionString() {
         return $this->assertIdentical($this->map['test_mysql'], DaoFactory::getConnectionString('test_mysql', $this->test_map_file));
@@ -193,8 +193,8 @@ class DaoFactory_getDSN_Test extends Snap_UnitTestCase {
     protected $test_map_file;
 
     public function setUp() {
-        $this->test_map_file = basename(realpath('.')) . DIRECTORY_SEPARATOR . 'test_db2dsn.inc.php';
-        @include dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . $this->test_map_file;
+        $this->test_map_file = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'test_db2dsn.inc.php';
+        @include $this->test_map_file;
         $this->map = $map;
     }
     
@@ -261,8 +261,8 @@ class DaoFactory_create_connector_Test extends Snap_UnitTestCase {
     protected $test_map_file;
     
     public function setUp() {
-        $this->test_map_file = basename(realpath('.')) . DIRECTORY_SEPARATOR . 'test_db2dsn.inc.php';
-        @include dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . $this->test_map_file;
+        $this->test_map_file = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'test_db2dsn.inc.php';
+        @include $this->test_map_file;
         $this->mock_method = $this->mock('DaoFactory')
             ->setReturnValue('connect', FALSE)
             ->construct();

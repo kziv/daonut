@@ -61,6 +61,11 @@ class DAOFactory {
         return TRUE;
     }
 
+    /**
+     * Gets a connector object based on a connection string
+     * @param {str} Connection string in parse_url format
+     * @return {obj} New instance of connector class
+     **/
     public static function getConnector($connection_string) {
 
         if (empty($connection_string)) {
@@ -90,6 +95,8 @@ class DAOFactory {
      * Creates a connection to a data resource
      * @param {str} daonut resource string in format DB.Table
      * @param {str} Query type (default: 'select')
+     * @return {obj} Instance of a DynamicDao class
+     * @todo Reuse a DynamicDao if it already exists
      **/
     public static function create($resource, $type = 'select') {
         
@@ -151,7 +158,8 @@ class DAOFactory {
      * Gets the connection string for a DSN alias
      * Loads the DSN mapping information and returns the connection string for the given
      * DSN alias.
-     * @param  {str} DSN Alias (e.g. 'foo')
+     * @param  {str} DSN Alias
+     * @param  {str} Mapping file name
      * @return {str} Connection string in parse_url format
      **/
     public static function getConnectionString($alias, $file = 'dsn2connector.inc.php') {
@@ -163,7 +171,13 @@ class DAOFactory {
         }
         
         if (empty(self::$dsn)) {
-            @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
+            if (substr($file, 0, 1) == '/') {
+                @include $file;
+            }
+            else {
+                @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
+            }
+            
             if (!isset($map)) {
                 return FALSE;
             }
@@ -180,10 +194,17 @@ class DAOFactory {
      * Gets the DSN alias for a database
      * Loads the database mapping information and returns the DSN alias
      * for the given database.
+     * @param {str} Database name
+     * @param {str} 
      **/
-    public static function getDSN($alias, $file = 'db2dsn.inc.php') {
+    public static function getDSN($db, $file = 'db2dsn.inc.php') {
         if (empty(self::$db2dsn)) {
-            @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
+            if (substr($file, 0, 1) == '/') {
+                @include $file;
+            }
+            else {
+                @include dirname(__FILE__) . DIRECTORY_SEPARATOR . $file ;
+            }
             if (!isset($map)) {
                 return FALSE;
             }
@@ -191,8 +212,8 @@ class DAOFactory {
             unset($map);
         }
         
-        return isset(self::$db2dsn[$alias])
-            ? self::$db2dsn[$alias]
+        return isset(self::$db2dsn[$db])
+            ? self::$db2dsn[$db]
             : FALSE;
     }
     
