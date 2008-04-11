@@ -1,6 +1,7 @@
 <?php
 /**
  * @author Karen Ziv <karen@perlessence.com>
+ * @see http://github.com/foobarbazquux/daonut/wikis/daofactory
  **/
 class DAOFactory {
 
@@ -14,40 +15,31 @@ class DAOFactory {
     public static $db2dsn        = array(); // database -> DSN mappings
     
     public static $test_factory;  // This is a unit-testing hook. Do NOT use it for anything else    
-        
+
     /**
-     * Creates a connector object
-     * Looks for an existing connector instance matching the given connection string. If
-     * one does not exist, loads the correct scheme class and stores an instance of the
-     * connector. This allows the
-     * @param  {str}  Connection string in format scheme://user:pass@host:port/(db | path )
-     * @return {bool} Success or failure
+     * Gets a connector object based on a daonut resource string
+     * This method is shorthand for getConnector(getConnectionString(getDSN('DB.Table')))
+     * @param {str} daonut resource string in format DB.Table
+     * @return {obj} New instance of connector class
      **/
-    public static function connect($connection_string) {
+    public static function connect($resource) {
 
-        // Unit testing static method
-        if (self::$test_factory && method_exists(self::$test_factory, __METHOD__)) {
-            $f = self::$test_factory;
-            return $f->__METHOD__($connection_string);
+        $resource = trim($resource);
+        if (empty($resource)) {
+            return FALSE;
         }
-
-        $connection_string = trim($connection_string);
-        if (empty($connection_string)) {
+        list($db, $table) = split('.', $resource);
+        
+        $dsn = self::getDSN($db);
+        if (!$dsn) {
             return FALSE;
         }
 
-        // If an existing version of this connector exists, no need to recreate
-        if (isset(self::$connectors[$connection_string])) {
-            return TRUE;
-        }
-
-        // Create and store a new connector
-        $scheme = parse_url($connection_string, PHP_URL_SCHEME);
-        if (empty($scheme)) {
+        $connection_string = self::getConnectionString($dsn);
+        if (!$connection_string) {
             return FALSE;
         }
 
-        // Unit testing static method
         $connector = self::getConnector($connection_string);
         if (!$connector) {
             return FALSE;
@@ -57,10 +49,10 @@ class DAOFactory {
             error_log("Can't connect: " . $error['message']);
             return FALSE;
         }
-        self::$connectors[$connection_string] = $connector;
-        return TRUE;
-    }
 
+        return $connector;
+    }
+    
     /**
      * Gets a connector object based on a connection string
      * @param {str} Connection string in parse_url format
@@ -71,14 +63,24 @@ class DAOFactory {
         if (empty($connection_string)) {
             return FALSE;
         }
+
+        // If an existing version of this connector exists, no need to recreate
+        if (isset(self::$connectors[$connection_string])) {
+            return self::$connectors[$connection_string];
+        }
         
         // Unit testing static method
         if (self::$test_factory && method_exists(self::$test_factory, 'getConnector')) {
             $f = self::$test_factory;
             return $f->getConnector($connection_string);
         }
-        
+
+        // Create and store a new connector
         $scheme = parse_url($connection_string, PHP_URL_SCHEME);
+        if (empty($scheme)) {
+            error_log("No scheme type in connection string '" . $connection_string . "'");
+            return FALSE;
+        }        
         $class_name = 'Connector_' . $scheme;
         if (!class_exists($class_name)) {
             $connector_path = dirname(__FILE__) . self::DIR_CONNECTORS . $scheme . '.connector.php';
@@ -88,7 +90,8 @@ class DAOFactory {
                 return FALSE;
             }
         }
-        return new $class_name();
+        self::$connectors[$connection_string] = new $class_name();
+        return self::$connectors[$connection_string];
     }
 
     /**
@@ -135,14 +138,14 @@ class DAOFactory {
             $dao = new DynamicDao();
             list($dao->db, $dao->table) = explode('.', $resource);
         }
-        
+
         // Create a new connection if one doesn't exist
         $connection_string = self::getConnectionString(self::getDSN($dao->db));
         if (empty($connection_string)) {
             error_log("No connection string found for resource '" . $resource . "'");
             return FALSE;
         }
-        if (!self::connect($connection_string)) {
+        if (!self::getConnector($connection_string)) {
             return FALSE;
         }
         $dao->setConnector(self::$connectors[$connection_string]);
