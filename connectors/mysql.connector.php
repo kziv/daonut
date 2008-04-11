@@ -23,7 +23,7 @@ class Connector_MySQL implements Connector {
         if (!isset($params['pass'])) {
             $params['pass'] = NULL;
         }
-
+        
         $this->db_link = @mysql_connect($params['host'], $params['user'], $params['pass']);
         if (!$this->db_link) {
             $this->error = array('errno'   => mysql_errno(),

@@ -26,22 +26,26 @@ class DAOFactory {
 
         $resource = trim($resource);
         if (empty($resource)) {
+            error_log("Invalid resource string '$resource'");
             return FALSE;
         }
-        list($db, $table) = split('.', $resource);
+        list($db, $table) = explode('.', $resource);
         
         $dsn = self::getDSN($db);
         if (!$dsn) {
+            error_log("No DSN alias found for DB '$db'");
             return FALSE;
         }
 
         $connection_string = self::getConnectionString($dsn);
         if (!$connection_string) {
+            error_log("No connection string found for DSN alias '$dsn'");
             return FALSE;
         }
 
         $connector = self::getConnector($connection_string);
         if (!$connector) {
+            error_log("Could not create connector for connection string '$connection_string'");
             return FALSE;
         }
         if (!$connector->connect($connection_string)) {
@@ -80,7 +84,7 @@ class DAOFactory {
         if (empty($scheme)) {
             error_log("No scheme type in connection string '" . $connection_string . "'");
             return FALSE;
-        }        
+        }
         $class_name = 'Connector_' . $scheme;
         if (!class_exists($class_name)) {
             $connector_path = dirname(__FILE__) . self::DIR_CONNECTORS . $scheme . '.connector.php';
@@ -139,21 +143,9 @@ class DAOFactory {
             list($dao->db, $dao->table) = explode('.', $resource);
         }
 
-        // Create a new connection if one doesn't exist
-        $connection_string = self::getConnectionString(self::getDSN($dao->db));
-        if (empty($connection_string)) {
-            error_log("No connection string found for resource '" . $resource . "'");
-            return FALSE;
-        }
-        if (!self::getConnector($connection_string)) {
-            return FALSE;
-        }
-        $dao->setConnector(self::$connectors[$connection_string]);
-        if (!$dao->connector->usedb($dao->db)) {
-            error_log("Could not connect to DB '" . $dao->db . "'");
-            return FALSE;
-        }
-
+        $connector = self::connect($resource);
+        $dao->connector = $connector;
+        $dao->usedb($dao->db);
         return $dao;
     }
 
