@@ -5,11 +5,12 @@
  **/
 class DAOFactory {
 
-    const DIR_CONNECTORS = '/connectors/';
-    const DIR_RESOURCES  = '/resources/';
-
-    protected static $connectors = array();
-    protected static $resources = array();
+    const DIR_CONNECTORS = '/connectors/'; // TODO : can slashes be turned to DIRECTORY_SEPARATOR?
+    const DIR_RESOURCES  = '/resources/';  // TODO : can slashes be turned to DIRECTORY_SEPARATOR?
+    const QUERY_BUILDER  = 'querybuilder.inc.php';
+    
+    protected static $connectors = array(); // Pool of existing connectors for reuse
+    protected static $resources = array();  // Pool of existing resources for reuse
     
     public static $dsn2connector = array(); // DSN -> connector mappings
     public static $db2dsn        = array(); // database -> DSN mappings
@@ -143,6 +144,22 @@ class DAOFactory {
             list($dao->db, $dao->table) = explode('.', $resource);
         }
 
+        // Create a QueryBuilder for the DynamicDao
+        if (class_exists('QueryBuilder')) {
+            $dao->setQueryBuilder(new QueryBuilder());
+            $dao->querytype($type);
+            $dao->from($dao->table);
+        }
+        else {
+            // Try to include the QueryBuilder class file
+            @include dirname(__FILE__) . DIRECTORY_SEPARATOR . self::QUERY_BUILDER;
+            if (class_exists('QueryBuilder')) {
+                $dao->setQueryBuilder(new QueryBuilder());
+                $dao->querytype($type);
+                $dao->from($dao->table);
+            }
+        }
+        
         $connector = self::connect($resource);
         $dao->connector = $connector;
         $dao->usedb($dao->db);
@@ -214,22 +231,19 @@ class DAOFactory {
     
 }
 
+/**
+ * @author Karen Ziv <karen@perlessence.com>
+ * @see http://github.com/foobarbazquux/daonut/wikis/dynamicdao
+ **/
 class DynamicDao {
-
+    
     public $db;
     public $table;
     public $fields = array();
 
-    public $connector;
+    public    $connector;
     protected $querybuilder;
-    
     protected $sql;
-    
-    public function __construct() {
-        if (class_exists('QueryBuilder')) {
-            $this->querybuilder = new QueryBuilder();
-        }
-    }
     
     /**
      * Stores a database connector
@@ -241,6 +255,10 @@ class DynamicDao {
         $this->connector = $connector;
     }
 
+    public function setQueryBuilder(QueryBuilder $qb) {
+        $this->querybuilder = $qb;
+    }
+    
     /**
      * Stores a SQL query string for execution
      * @param {str} query string
@@ -254,6 +272,10 @@ class DynamicDao {
         return TRUE;
     }
 
+    public function sql() {
+        return $this->sql;
+    }
+    
     /**
      * Executes a query
      * @param {bool} 
@@ -262,7 +284,17 @@ class DynamicDao {
         if (empty($this->connector)) {
             return FALSE;
         }
-        return $this->connector->query($this->sql);
+        if ($this->querybuilder) {
+            try {
+                $this->sql = $this->querybuilder->build();
+            }
+            catch (QueryBuilderException $e) {
+                return FALSE;
+            }
+        }
+        return empty($this->sql)
+            ? FALSE
+            : $this->connector->query($this->sql);
     }
 
     /**
@@ -274,8 +306,13 @@ class DynamicDao {
         if (method_exists($this->connector, $m)) {
             return call_user_func_array(array($this->connector, $m), $a);
         }
-        elseif ($this->querybuilder && method_exists($this->querybuilder, $m)) {
-            return call_user_func_array(array($this->querybuilder, $m), $a);
+        elseif ($this->querybuilder) {  // Everything defaults to run against QueryBuilder if it exists
+            try {
+                return call_user_func_array(array($this->querybuilder, $m), $a);
+            }
+            catch (QueryBuilderException $e) {
+                throw new DynamicDaoException("Method '$m' does not exist: " . $e->getMessage());
+            }
         }
         else {
             throw new DynamicDaoException("Method '$m' does not exist.");

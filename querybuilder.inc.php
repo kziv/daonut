@@ -16,6 +16,7 @@ class QueryBuilder {
     protected $where;                 // WHERE clause
     protected $group;                 // GROUP BY clause
     protected $order;                 // ORDER BY clause
+    protected $limit;                 // LIMIT clause
     protected $setfields = array();   // UPDATE field set
 
     /**
@@ -71,6 +72,23 @@ class QueryBuilder {
         $this->order = $order_str;
     }
 
+    /**
+     * Stores a LIMIT clause
+     * @param {int} Number of results to return
+     * @param {int} Starting result row
+     **/
+    public function limit($count, $start = 0) {
+        if ($this->query_type == 'INSERT') {
+            throw new QueryBuilderException("Method " . __METHOD__ . " can't be called on a " . $this->querytype . ' query');
+        }
+        if ($count < 1) {
+            return FALSE;
+        }
+        $count = intval($count);
+        $start = $start > 0 ? intval($count) : 0;
+        $this->limit = $start ? $start . ',' . $count : $count;
+    }
+    
     /**
      * Stores a GROUP BY clause
      * Takes in a GROUP BY clause (minus the 'GROUP BY')
@@ -202,11 +220,11 @@ class QueryBuilder {
 
         $orig_m = $m;
         $m = strtolower($m);
-        
-        if (strpos($m, 'by') === 0) {  // byFieldName syntax for SELECTs
+
+        if (strpos($m, 'by') === 0) {  // byFieldName syntax for SELECTs and UPDATEs
             
             if ($this->query_type == 'INSERT') {
-                throw new QueryBuilderException("Invalid method called on an INSERT query : " . $orig_m);
+                throw new QueryBuilderException("Method '" . $orig_m . "' can't be called on an INSERT query");
             }
             $field = substr($m, 2);
 
@@ -249,7 +267,7 @@ class QueryBuilder {
         }
         elseif (strpos($m, 'set') === 0) { // setFieldName syntax for UPDATEs/INSERTs
             if ($this->query_type != 'INSERT' && $this->query_type != 'UPDATE') {
-                throw new QueryBuilderException("Invalid method called on a " . $this->querytype . " query : " . $orig_m);
+                throw new QueryBuilderException("Method '" . $orig_m . "' can't be called on a " . $this->querytype . ' query');
             }
             $field = substr($m, 3);
             $this->setfields[$field] = $a[0];
