@@ -54,8 +54,30 @@ class Connector_MySQL implements Connector {
         return (bool) $this->rs;        
     }
 
-    public function escape($string) {
-        return mysql_real_escape_string($string);
+    public static function escape($var) {
+
+        switch (TRUE) {
+            
+            case is_array($var) :
+                foreach ($var as &$val) {
+                    $val = self::escape($val);
+                }
+                break;
+
+            case is_string($var) :
+                $var = mysql_real_escape_string($var);
+                break;
+
+            case is_bool($var) :
+                $var = $var ? 1 : 0;
+                break;
+
+            case is_null($var) :
+                $var = 'NULL';
+                break;
+        }
+        
+        return $var;
     }
 
     /* =================================
@@ -84,9 +106,6 @@ class Connector_MySQL implements Connector {
             : FALSE;
     }
 
-    /**
-     * @todo Implement this
-     **/
     public function fetchfield($field) {
         $row = $this->fetchrow(RS_HASH);
         return isset($row[$field]) ? $row[$field] : FALSE;

@@ -41,6 +41,14 @@ interface Connector {
      **/
     public function query($sql);
 
+    /**
+     * Escapes a string in a database-specific manner to prevent SQL injection attacks and
+     * SQL syntax errors
+     * @param  {str} Unsafe string
+     * @return {str} Safely escaped string
+     **/
+    public static function escape($val);
+    
     /* =================================
        RESULT SET METHODS
        ================================= */

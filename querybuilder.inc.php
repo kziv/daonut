@@ -1,10 +1,11 @@
 <?php
 /**
  * QueryBuilder
- * Class for building SQL queries. Although it is designed to stand alone
- * (i.e. can be instantiated as a utility class), you will want to override
- * the escape() method with a database-specific method.
- * database has its own rules.
+ * Class for building SQL queries. This class merely creates a valid
+ * SQL query string; it does NOT prevent SQL injection attacks because
+ * each database may escape its strings differently. To prevent exploits,
+ * sanitize each column and value in the format your database expects before
+ * passing in.
  * @author Karen Ziv <karen@perlessence.com>
  **/
 class QueryBuilder {
@@ -18,13 +19,21 @@ class QueryBuilder {
     protected $order;                 // ORDER BY clause
     protected $limit;                 // LIMIT clause
     protected $setfields = array();   // UPDATE field set
+    protected $escape_callback;       // Function to escape strings in a db-safe manner
 
+    public function __construct($escape_callback = NULL) {
+        $this->escape_callback = $escape_callback
+            ? $escape_callback
+            : array($this, 'escape');
+    }
+    
     /**
      * Sets the query type
      * Takes in a type of query that is going to be built and verifies that
      * it is on the approved list of query types. Since the query type determines
      * the allowed calls and final query building logic, this should be the first
      * call made after instantiation.
+     * @param {str} Type of query to run
      **/
     public function querytype($type) {
         $allowed_types = array('SELECT', 'INSERT', 'UPDATE', 'DELETE');
@@ -36,7 +45,7 @@ class QueryBuilder {
     }
         
     /**
-     *
+     * Sets the table to run a query against
      **/
     public function from($table) {
         $this->table = strtolower($table);
@@ -47,10 +56,11 @@ class QueryBuilder {
      * @param {mixed} array or CSV of database fields. (e.g. 'field1, field2 AS bar, COUNT(*) as mycount')
      **/    
     public function select($fields) {
-        if (is_array($fields)) {
-            $fields = implode(', ', $fields);
+        if (is_string($fields)) {
+            $fields = explode(',', $fields);
         }
-        $this->fields = $fields;
+        $fields = call_user_func($this->escape_callback, $fields);
+        $this->fields = implode(', ', $fields);
     }
 
     /**
@@ -60,7 +70,10 @@ class QueryBuilder {
      * @param {str} WHERE clause
      **/
     public function where($where_str) {
-        $this->where = $where_str;
+        if (empty($this->where)) {
+            $this->where = array();
+        }
+        $this->where[] = $where_str;
     }
 
     /**
@@ -119,19 +132,24 @@ class QueryBuilder {
                     . (empty($this->fields) ? '*' : $this->fields)
                     . ' FROM ' . $this->table;
 
-                if (is_string($this->where) && strlen($this->where)) {
-                    $sql .= ' WHERE ' . $this->where;
-                }
-                elseif (is_array($this->where)) {
+                if (!empty($this->where)) {
                     $sql .= ' WHERE ';
                     foreach ($this->where as $count => $where) {
+                        if (is_string($where)) {
+                            if ($count) {
+                                $sql .= ' AND ';
+                            }
+                            $sql .= ' ' . $where;
+                            continue;
+                        }
+                        
                         if ($count) {
                             $sql .= ' ' . $where['andor'];
                         }
-                        $sql .= ' ' . $where['field'] . ' ' . $where['operator'] . ' ';
+                        $sql .= ' ' . call_user_func($this->escape_callback, $where['field']) . ' ' . $where['operator'] . ' ';
                         if (is_array($where['value'])) {
                             foreach ($where['value'] as $key => $val) {
-                                $where['value'][$key] = $this->quote($this->escape($val));
+                                $where['value'][$key] = $this->quote(call_user_func($this->escape_callback, $val));
                             }
 
                             if ($where['operator'] == 'IN') {
@@ -139,12 +157,12 @@ class QueryBuilder {
                             }
                             elseif ($where['operator'] = 'BETWEEN') {
                                 list($val1, $val2) = $where['value'];
-                                $sql .= $val1 . ' AND ' . $val2;
+                                $sql .= call_user_func($this->escape_callback, $val1) . ' AND ' . call_user_func($this->escape_callback, $val2);
                             }
                             
                         }
                         else {
-                            $sql .= $this->quote($this->escape($where['value']));
+                            $sql .= $this->quote(call_user_func($this->escape_callback, $where['value']));
                         }
                         
                     }
@@ -163,7 +181,7 @@ class QueryBuilder {
 
                 $sql = 'UPDATE ' . $this->table . ' SET ';
                 foreach ($this->setfields as $field => $value) {
-                    $sql .= ' ' . $field . " = '" . $this->escape($value) . "',";
+                    $sql .= ' ' . $field . " = '" . $value . "',";
                 }
                 $sql = trim($sql, ','); // Remove the trailing comma from the last SET statement
                 if (strlen($this->where)) {
@@ -178,7 +196,7 @@ class QueryBuilder {
                     . ' VALUES '
                     . '(';
                 foreach (array_values($this->setfields) as $val) {
-                    $sql .= "'" . $this->escape($val) . "',";
+                    $sql .= "'" . $val . "',";
                 }
                 $sql = trim($sql, ',');
                 $sql .= ')';
@@ -192,20 +210,8 @@ class QueryBuilder {
                 }
         }
 
+        //dump($sql);
         return $sql;
-    }
-
-    /**
-     * Sanitizes a string for safe query usage
-     * This method in the given form passes the given string through
-     * unaltered. It is meant to be overriden when this class is
-     * extended; the override should use database-specific sanitization
-     * syntax.
-     * @param {str} Raw, unsafe value
-     * @return {str} Sanitized, safe value
-     **/
-    protected function escape($string) {
-        return $string;
     }
 
     /**
@@ -228,9 +234,8 @@ class QueryBuilder {
             }
             $field = substr($m, 2);
 
-            // If the WHERE stack is empty or not an array, create an empty stack.
-            // This will override a manual where() call.
-            if (!is_array($this->where)) {
+            // If the WHERE stack is empty, create a new stack for WHERE clauses
+            if (empty($this->where)) {
                 $this->where = array();
             }
             
@@ -283,6 +288,25 @@ class QueryBuilder {
     protected function quote($str) {
         return "'" . $str . "'";
     }
+
+    /**
+     * Default escape method
+     * This is meant to be overridden with a callback set using
+     * setEscapeCallback().
+     **/
+    protected function escape($var) {
+        return $var;
+    }
+    
+    /**
+     * Overrides the default escape function to allow for
+     * database-specific escaping.
+     * @param {array} Function callback in form array($class, $func_name)
+     **/
+    public function setEscapeCallback($func) {
+        $this->escape_callback = $func;
+    }
+    
 }
 
 /**
