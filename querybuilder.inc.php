@@ -157,7 +157,8 @@ class QueryBuilder {
                             }
                             elseif ($where['operator'] = 'BETWEEN') {
                                 list($val1, $val2) = $where['value'];
-                                $sql .= call_user_func($this->escape_callback, $val1) . ' AND ' . call_user_func($this->escape_callback, $val2);
+                                dump($val1);
+                                $sql .= $val1 . ' AND ' . $val2;
                             }
                             
                         }
@@ -174,7 +175,10 @@ class QueryBuilder {
                 if ($this->order) {
                     $sql .= ' ORDER BY ' . $this->order;
                 }
-
+                if ($this->limit) {
+                    $sql .= ' LIMIT ' . $this->limit;
+                }
+                
                 break;
                 
             case 'UPDATE' :
@@ -187,6 +191,10 @@ class QueryBuilder {
                 if (strlen($this->where)) {
                     $sql .= ' WHERE ' . $this->where;
                 }
+                if ($this->limit) {
+                    $sql .= ' LIMIT ' . $this->limit;
+                }
+                
                 break;
 
             case 'INSERT' :
@@ -208,6 +216,10 @@ class QueryBuilder {
                 if (strlen($this->where)) {
                     $sql .= ' WHERE ' . $this->where;
                 }
+                if ($this->limit) {
+                    $sql .= ' LIMIT ' . $this->limit;
+                }
+                
         }
 
         //dump($sql);
