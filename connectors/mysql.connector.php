@@ -4,6 +4,7 @@ include_once 'connector.interface.php';
 /**
  * MySQL connector class
  * For method descriptions, see interface Connector in connector.interface.php
+ * @todo For all methods, toggle between mysql and mysqli functions
  **/
 class Connector_MySQL implements Connector {
 
@@ -84,6 +85,10 @@ class Connector_MySQL implements Connector {
        RESULT SET METHODS
        ================================= */
 
+    public function insert_id() {
+        return mysql_insert_id($this->db_link);
+    }
+    
     public function affectedrows() {
         return (strpos($this->sql, 'SELECT') === 0)
             ? mysql_num_rows($this->rs)

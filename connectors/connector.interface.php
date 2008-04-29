@@ -54,6 +54,12 @@ interface Connector {
        ================================= */
 
     /**
+     * Returns the auto_increment ID from the last INSERT query
+     * @return {int}
+     **/
+    public function insert_id();
+    
+    /**
      * Gets the number of affected rows in a query
      * For SELECT queries, returns the number of found rows. For INSERT/UPDATE/DELETE,
      * returns the number of affected rows.

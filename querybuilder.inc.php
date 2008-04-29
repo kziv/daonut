@@ -157,7 +157,6 @@ class QueryBuilder {
                             }
                             elseif ($where['operator'] = 'BETWEEN') {
                                 list($val1, $val2) = $where['value'];
-                                dump($val1);
                                 $sql .= $val1 . ' AND ' . $val2;
                             }
                             
