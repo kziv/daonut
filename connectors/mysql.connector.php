@@ -24,7 +24,12 @@ class Connector_MySQL implements Connector {
         if (!isset($params['pass'])) {
             $params['pass'] = NULL;
         }
-        
+        $bad_strings = array("\b", "\0", "\n", "\r", "\t", "\z",
+		     "/n", "/0", "/n", "/r", "/t", "/z",
+		     "$", "'", '"', "%", ";", "_", "*", 
+		     "`", "drop table");
+		$params['pass'] = str_replace($bad_strings, "", $params['pass']); //Avoid SQL Injection
+		$params['user'] = str_replace($bad_strings, "", $params['user']); //Avoid SQL Injection
         $this->db_link = @mysql_connect($params['host'], $params['user'], $params['pass']);
         if (!$this->db_link) {
             $this->error = array('errno'   => mysql_errno(),
